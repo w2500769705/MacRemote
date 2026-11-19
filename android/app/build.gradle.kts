@@ -13,8 +13,8 @@ android {
         applicationId = "com.macremote.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 5
-        versionName = "0.2.3"
+        versionCode = 6
+        versionName = "0.2.4"
     }
 
     // 发布签名：读项目根目录的 keystore.properties（不进 git）；没有这个文件时 release 不签名

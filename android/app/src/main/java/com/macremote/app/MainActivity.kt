@@ -1,16 +1,25 @@
 package com.macremote.app
 
+import android.Manifest
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -39,6 +48,10 @@ private val TextDim = Color(0xFF8A93A3)
 
 class MainActivity : ComponentActivity() {
     private val client = RemoteClient()
+    private var hasLocalNetworkAccess by mutableStateOf(false)
+    private val requestLocalNetworkAccess = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> hasLocalNetworkAccess = granted }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,13 +59,33 @@ class MainActivity : ComponentActivity() {
         client.host = prefs.getString("host", "") ?: ""
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(primary = Accent, background = Bg, surface = Card)) {
-                App(client, prefs)
+                if (hasLocalNetworkAccess) {
+                    App(client, prefs)
+                } else {
+                    LocalNetworkPermissionScreen(
+                        onRequest = {
+                            requestLocalNetworkAccess.launch(Manifest.permission.ACCESS_LOCAL_NETWORK)
+                        },
+                        onOpenSettings = {
+                            startActivity(
+                                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
+                            )
+                        },
+                    )
+                }
             }
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        hasLocalNetworkAccess = Build.VERSION.SDK_INT < 37 ||
+            checkSelfPermission(Manifest.permission.ACCESS_LOCAL_NETWORK) == PackageManager.PERMISSION_GRANTED
+    }
+
     // 手机音量键直接调 Mac 的音量
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (!hasLocalNetworkAccess) return super.onKeyDown(keyCode, event)
         when (keyCode) {
             KeyEvent.KEYCODE_VOLUME_UP -> { client.send("v up"); return true }
             KeyEvent.KEYCODE_VOLUME_DOWN -> { client.send("v down"); return true }
@@ -63,6 +96,23 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         client.close()
+    }
+}
+
+@Composable
+private fun LocalNetworkPermissionScreen(onRequest: () -> Unit, onOpenSettings: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().background(Bg).systemBarsPadding()
+            .verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text("需要局域网权限", color = TextMain, style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.height(8.dp))
+        Text("授权后才能发现并遥控同一局域网里的 Mac。", color = TextDim)
+        Spacer(Modifier.height(12.dp))
+        Button(onClick = onRequest) { Text("授权局域网访问") }
+        TextButton(onClick = onOpenSettings) { Text("打开应用设置") }
     }
 }
 

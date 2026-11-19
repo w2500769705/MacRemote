@@ -2,7 +2,7 @@
 
 用安卓手机遥控 Mac，支持按键遥控、触控板、音量调节和局域网自动发现，适合连接电视的 Mac 使用。
 
-当前 Android 版本：0.2.3（versionCode 5）。Mac 接收端的构建脚本面向 Intel x86_64，最低部署目标为 macOS 10.13；其他架构尚未验证。
+当前 Android 版本：0.2.4（versionCode 6）。Mac 接收端的构建脚本面向 Intel x86_64，最低部署目标为 macOS 10.13；其他架构尚未验证。
 
 ## 结构
 - `mac/` Mac 端 `macremoted`（Objective-C，x86_64，最低 macOS 10.13）
@@ -44,7 +44,7 @@ cd android
 ./gradlew testDebugUnitTest
 ```
 
-手机与 Mac 连接到同一局域网，在 App 中自动发现设备。访客网络隔离或防火墙可能影响发现和连接。
+手机与 Mac 连接到同一局域网，在 App 中自动发现设备。Android 17 及以上首次使用时，请在 App 内授予局域网权限。访客网络隔离或防火墙可能影响发现和连接。
 
 正式版执行 `./gradlew assembleRelease`。如需签名，在 `android/keystore.properties` 中填写自己的签名配置（该文件不提交）：
 
